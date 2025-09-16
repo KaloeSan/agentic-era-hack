@@ -17,7 +17,7 @@ from typing import List
 
 import google.auth
 from google.adk.agents import Agent
-from google.adk.tools import tool
+from google.adk import tool
 
 # --- Boilerplate Setup ---
 _, project_id = google.auth.default()
