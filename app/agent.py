@@ -74,5 +74,6 @@ def collect_feedback(feedback: Feedback) -> dict[str, str]:
     logger.log_struct(feedback.model_dump(), severity="INFO")
     return {"status": "success"}
 
+
 # The `if __name__ == "__main__"` block has been removed as it is not used by the container.
 # The Dockerfile's CMD instruction is the single source of truth for running the server.
