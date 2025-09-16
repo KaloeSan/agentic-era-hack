@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import os
-
 import google.auth
+
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from google.adk.cli.fast_api import get_fast_api_app
 from google.cloud import logging as google_cloud_logging
 from opentelemetry import trace
@@ -63,6 +65,13 @@ app: FastAPI = get_fast_api_app(
 )
 app.title = "professor-tutor"
 app.description = "API for interacting with the Agent professor-tutor"
+
+STATIC_DIR = Path("app/static")
+
+@app.get("/customPage")
+async def customPage():
+    """Serves the index.html"""
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
 @app.post("/feedback")

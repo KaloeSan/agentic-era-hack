@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Agent via /run</title>
+</head>
+
+<body>
+    <h1>Ask agent using custom page 🤖</h1>
+
+    <div id="session-info" style="margin-bottom: 1em; font-weight: bold;"></div>
+
+    <textarea id="question" placeholder="Type your question..." style="width: 100%; height: 100px;"></textarea>
+    <br>
+    <button onclick="askAgent()">Send</button>
+
+    <h2>Answer:</h2>
+    <pre id="answer" style="white-space: pre-wrap; background: #f0f0f0; padding: 1em;"></pre>
+
+    <script>
+        const appName = "app";
+        const userId = "NewUser_123";
+        const sessionId = uuidv4();
+
+        // ---- UUID generator ----
+        function uuidv4() {
+            return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
+
+        // ---- Create a new session at page load ----
+        async function createSession() {
+            const payload = { state: {} };
+            const url = `/apps/${appName}/users/${userId}/sessions/${sessionId}`;
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+            console.log("Session created:", data);
+
+            // Show info on top of the page
+            document.getElementById("session-info").textContent =
+                `User: ${userId} | Session: ${sessionId}`;
+        }
+
+        // ---- Ask agent via /run ----
+        async function askAgent() {
+            const userInput = document.getElementById("question").value;
+
+            const payload = {
+                app_name: appName,
+                user_id: userId,
+                session_id: sessionId,
+                new_message: {
+                    role: "user",
+                    parts: [{ text: userInput }]
+                }
+            };
+
+            console.log("Payload to /run:", payload);
+
+            const resp = await fetch("/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await resp.json();
+            console.log("Full /run response:", data);
+
+            // Display full JSON response on page
+            //   document.getElementById("answer").textContent = JSON.stringify(data, null, 2);
+
+            // /run returns a list of events; the model text is usually
+            // in the last event under `content.parts[0].text`
+            const outputEvent = data[data.length - 1];
+            const answerText = outputEvent?.content?.parts?.[0]?.text ?? "[no text output]";
+
+            document.getElementById("answer").textContent = answerText
+        }
+
+        // ---- Run session creation on page startup ----
+        createSession();
+    </script>
+</body>
+
+</html>
