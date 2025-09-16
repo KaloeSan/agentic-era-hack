@@ -13,24 +13,20 @@
 # limitations under the License.
 
 import os
-from typing import List
-
 import google.auth
 from google.adk.agents import Agent
-from google.adk.tools import tool
 
 # --- Boilerplate Setup ---
 _, project_id = google.auth.default()
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 
 
-# --- Step 1: Define the Tools for the Professor Tutor Crew ---
-# The docstrings (the text in """...""") are critical. They are the descriptions
-# the agent uses to decide which tool to call.
+# --- Step 1: Define all tools as plain Python functions ---
+# The docstrings (the text in """...""") are critical because the model uses them
+# to decide which tool to use.
 
-@tool
 def access_long_term_memory(
     user_id: str,
     mode: str,
@@ -41,13 +37,12 @@ def access_long_term_memory(
     Essential for personalization and tracking progress.
     'mode' can be 'write', 'read_summary', or 'query_mistakes'.
     """
-    # Application interact with a database (e.g., Firestore).
+    # In a real application, this would interact with a database (e.g., Firestore).
     print(f"🧠 Accessing Memory: User='{user_id}', Mode='{mode}', Data='{data}'")
     if mode == "read_summary":
         return "User previously struggled with irregular past tense verbs."
     return "Memory access successful."
 
-@tool
 def create_learning_plan(
     current_level: str,
     goals: str,
@@ -61,7 +56,6 @@ def create_learning_plan(
     print(f"📅 Creating learning plan for level '{current_level}'...")
     return f"Weekly Plan Created: Focus on '{goals}', building on past performance."
 
-@tool
 def generate_assessment(
     topic: str,
     num_questions: int = 5,
@@ -74,7 +68,6 @@ def generate_assessment(
     print(f"📝 Generating a {num_questions}-question quiz on '{topic}'...")
     return f"Quiz on '{topic}' is ready."
 
-@tool
 def setup_scenario(scenario_name: str, difficulty: str = "intermediate") -> str:
     """
     Use this to get the details for a role-playing scenario. Returns the setting,
@@ -84,74 +77,52 @@ def setup_scenario(scenario_name: str, difficulty: str = "intermediate") -> str:
     return f"Scenario ready: You are at a restaurant. Your opening line is 'Hello, a table for one, please.'"
 
 
-# --- Step 2: Define the Specialist Sub-Agents ---
-
-planner_agent = Agent(
-    name="Planner_Agent",
-    model="gemini-1.5-pro-latest",
-    instruction="Your sole purpose is to create effective learning plans using your tools.",
-    tools=[create_learning_plan, access_long_term_memory]
-)
-
-role_player_agent = Agent(
-    name="Role_Player_Agent",
-    model="gemini-1.5-pro-latest",
-    instruction="Your sole purpose is to engage the user in realistic role-playing scenarios using your tools.",
-    tools=[setup_scenario]
-)
-
-assessor_agent = Agent(
-    name="Assessor_Agent",
-    model="gemini-1.5-pro-latest",
-    instruction="Your sole purpose is to create and run effective assessments using your tools, leveraging the user's long-term memory to target weak areas.",
-    tools=[generate_assessment, access_long_term_memory]
-)
-
-
-# --- Step 3: Define the Main Orchestrator Agent: Professor Tutor ---
+# --- Step 2: Define the Main Orchestrator Agent ---
 
 PROFESSOR_TUTOR_PROMPT = """
-You are Professor Tutor, the lead agent and orchestrator of a language learning crew. Your personality is friendly, patient, and expert. Your primary role is to manage the user's learning journey by understanding their needs and delegating tasks to your specialist agents.
+You are Professor Tutor, the lead agent and orchestrator of a language learning crew. Your personality is friendly, patient, and expert. Your primary role is to manage the user's learning journey by understanding their needs and delegating tasks to the appropriate tools.
 
-**Your Specialist Team:**
-- Planner_Agent: Creates structured, long-term learning schedules.
-- Role_Player_Agent: An expert actor who runs immersive, real-world scenarios.
-- Assessor_Agent: Designs and administers quizzes to identify and reinforce weak points.
+**Your Capabilities (Tools):**
+- Plan Creation: You can create structured, long-term learning schedules.
+- Role-Playing: You can run immersive, real-world scenarios.
+- Assessment: You can design and administer quizzes to identify and reinforce weak points.
+- Memory: You can save and retrieve user progress.
 
-**Your Chain-of-Thought Process:**
+**Your Thought Process:**
 Before responding to the user, you MUST engage in a silent, internal monologue using <thinking> tags. This is your core operational loop.
 
 1.  **Analyze Request:** What is the user's explicit and implicit goal?
-2.  **Recall from Memory:** Access the Long-Term Memory tool to retrieve relevant user history, past struggles, and preferences.
-3.  **Delegate or Handle:** Decide if this is a simple conversational task you handle yourself, or if it requires a specialist.
+2.  **Recall from Memory:** Use the `access_long_term_memory` tool to retrieve relevant user history, past struggles, and preferences.
+3.  **Choose Tool or Respond:** Decide if this is a simple conversational task you handle yourself, or if it requires a specialist tool.
 4.  **Formulate Response:** Based on the above, construct your response to the user.
 
 **Rules of Engagement:**
-1.  **Orchestration:** Your main job is to delegate. When a task is complex, announce which specialist is taking over.
+1.  **Orchestration:** Your main job is to choose the right tool. When a task is complex, inform the user which tool you are using.
 2.  **Memory is Key:** You MUST use the `access_long_term_memory` tool to personalize every interaction.
-3.  **Continuity:** After a specialist agent completes a task, you will resume the conversation, summarize the results, and use the `access_long_term_memory` tool to save the outcome.
+3.  **Continuity:** After a tool completes a task, you will resume the conversation, summarize the results, and use the `access_long_term_memory` tool to save the outcome.
 """
 
+# We create a single agent and pass it ALL available tools
 root_agent = Agent(
     name="Professor_Tutor",
-    model="gemini-1.5-pro-latest",  # Using a powerful model for orchestration is recommended
+    model="gemini-2.5-pro",  # Using a powerful model for orchestration is recommended
     instruction=PROFESSOR_TUTOR_PROMPT,
-    tools=[access_long_term_memory],  # The orchestrator's main tool is memory
-    sub_agents=[  # Assign the specialist agents here
-        planner_agent,
-        role_player_agent,
-        assessor_agent
+    tools=[
+        access_long_term_memory,
+        create_learning_plan,
+        generate_assessment,
+        setup_scenario
     ]
 )
 
 # --- Example Usage ---
 if __name__ == "__main__":
     print("Starting conversation with Professor Tutor...")
-    
-    # Example 1: A task that requires delegation to the Assessor_Agent
+
+    # Example 1: A task that requires the assessment tool
     response = root_agent.chat("Can you test me on my past tense verbs?")
     print(f"\nProfessor Tutor's Response:\n{response}")
 
-    # Example 2: A task for the Role_Player_Agent
+    # Example 2: A task that requires the role-playing tool
     response = root_agent.chat("I'd like to practice ordering a coffee.")
     print(f"\nProfessor Tutor's Response:\n{response}")
