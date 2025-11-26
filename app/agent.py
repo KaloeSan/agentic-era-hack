@@ -38,7 +38,7 @@ def access_long_term_memory(
     'mode' can be 'write', 'read_summary', or 'query_mistakes'.
     """
     # In a real application, this would interact with a database (e.g., Firestore).
-    print(f"🧠 Accessing Memory: User='{user_id}', Mode='{mode}', Data='{data}'")
+    print(f"Accessing Memory: User='{user_id}', Mode='{mode}', Data='{data}'")
     if mode == "read_summary":
         return "User previously struggled with irregular past tense verbs."
     return "Memory access successful."
@@ -53,7 +53,7 @@ def create_learning_plan(
     Use this to create a structured, weekly learning plan based on user goals
     and past performance. Returns a day-by-day schedule of activities.
     """
-    print(f"📅 Creating learning plan for level '{current_level}'...")
+    print(f"Creating learning plan for level '{current_level}'...")
     return f"Weekly Plan Created: Focus on '{goals}', building on past performance."
 
 def generate_assessment(
@@ -65,7 +65,7 @@ def generate_assessment(
     Use this to create a quiz on a specific topic, often informed by the user's
     past mistakes from long-term memory. Returns a set of questions and answers.
     """
-    print(f"📝 Generating a {num_questions}-question quiz on '{topic}'...")
+    print(f"Generating a {num_questions}-question quiz on '{topic}'...")
     return f"Quiz on '{topic}' is ready."
 
 def setup_scenario(scenario_name: str, difficulty: str = "intermediate") -> str:
@@ -73,7 +73,7 @@ def setup_scenario(scenario_name: str, difficulty: str = "intermediate") -> str:
     Use this to get the details for a role-playing scenario. Returns the setting,
     your role, and an opening line to start the conversation.
     """
-    print(f"🎭 Setting up '{scenario_name}' scenario at {difficulty} difficulty...")
+    print(f"Setting up '{scenario_name}' scenario at {difficulty} difficulty...")
     return f"Scenario ready: You are at a restaurant. Your opening line is 'Hello, a table for one, please.'"
 
 
